@@ -26,8 +26,8 @@ private:
     void sendPostRequest(const std::string& body);
     void configureEndpointAP();
 
-    std::string _id = "anonymous";
-    std::string _url = "http://10.216.158.124:3000/";
+    std::string _id = "1";
+    std::string _url = "http://10.216.158.124:3000/api/v1/iot/data";
 
     std::string _ap_ssid = "esp32";
     std::string _ap_password = "supersecret";

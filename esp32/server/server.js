@@ -6,7 +6,7 @@ const port = 3000;
 
 app.use(express.json());
 
-app.post("/", (req, res) => {
+app.post("/api/v1/iot/data", (req, res) => {
   console.log(req.body);
   res.send({ status: "ok" });
 });

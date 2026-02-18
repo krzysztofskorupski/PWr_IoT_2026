@@ -12,7 +12,7 @@ void ServerManager::setDataProvider(std::function<std::string()> callback) {
 }
 
 std::string ServerManager::parseDataToJson(const std::string& data) {
-    return "{\"user\": \"" + _id + "\", \"data\": \"" + data + "\"}";
+    return "{\"device\": \"" + _id + "\", \"data\": \"" + data + "\"}";
 }
 
 void ServerManager::sendPostRequest(const std::string& body) {
