@@ -1,10 +1,12 @@
-import styles from './App.module.scss';
+import Controller from './Controller';
 import Dashboard from './Dashboard';
 
 function App() {
   return (
-    <div className={styles['app']}>
+    <div>
+      <h1>IoT</h1>
       <Dashboard />
+      <Controller />
     </div>
   );
 }

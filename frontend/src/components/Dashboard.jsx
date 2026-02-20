@@ -5,7 +5,6 @@ import styles from "./Dashboard.module.scss";
 const SOCKET_URL = "http://localhost:3000";
 
 const Dashboard = () => {
-  const [_, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [measurements, setMeasurements] = useState([]);
 
@@ -15,46 +14,46 @@ const Dashboard = () => {
       reconnectionAttempts: 5,
     });
 
-    webSocket.on("connect", () => {
-      console.log("Socket Connected:", webSocket.id);
-      setConnected(true);
-    });
-
-    webSocket.on("disconnect", () => {
-      console.log("Socket Disconnected:", webSocket.id);
-      setConnected(false);
-    });
-
-    webSocket.on("measurement", (data) => {
-      console.log("Measurement:", data);
-      setMeasurements((prev) => [data, ...prev].slice(0, 10));
-    });
-
-    setSocket(webSocket);
+    webSocket.on("connect", () => setConnected(true));
+    webSocket.on("disconnect", () => setConnected(false));
+    webSocket.on("measurement", (data) => setMeasurements((prev) => [data, ...prev].slice(0, 10)));
 
     return () => webSocket.close();
   }, []);
 
   return (
-    <div>
-      <h1>IoT Dashboard</h1>
-
-      <div>
-        Status: <strong>{connected ? "LIVE ●" : "DISCONNECTED ○"}</strong>
-      </div>
-
-      <h3>Measurements</h3>
-      <ul>
-        {measurements.map((item, id) => (
-          <li key={id}>
-            {new Date(item.timestamp).toLocaleTimeString()} -<strong> DATA - {item.data}</strong>
-            <span>
-              (id: {item.device}, record: {item.id})
-            </span>
-          </li>
-        ))}
-      </ul>
+    <div className={styles["body"]}>
+      <DashboardHeader connected={connected} />
+      <DashboardData measurements={measurements} />
     </div>
+  );
+};
+
+const DashboardHeader = ({ connected }) => {
+  return <h2>Measurements - Status: {connected ? "LIVE" : "DISCONNECTED"}</h2>;
+};
+
+const DashboardData = ({ measurements }) => {
+  return (
+    <ul className={styles["records"]}>
+      {measurements.map((item, id) => (
+        <Record key={id} item={item} />
+      ))}
+    </ul>
+  );
+};
+
+const Record = ({ item }) => {
+  const { id, data, device, timestamp } = item;
+  const date = new Date(timestamp).toLocaleTimeString();
+
+  return (
+    <li className={styles["records__item"]}>
+      <div className={styles["records__item--short"]}>{date}</div>
+      <div className={styles["records__item--short"]}>id: {id}</div>
+      <div className={styles["records__item--short"]}>device: {device}</div>
+      <div className={styles["records__item--long"]}>payload: {data}</div>
+    </li>
   );
 };
 
