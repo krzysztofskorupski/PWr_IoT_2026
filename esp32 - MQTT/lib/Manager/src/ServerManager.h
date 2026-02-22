@@ -14,29 +14,23 @@ class ServerManager {
     void setDataProvider(std::function<std::string()> callback);
     
     void startAP();
+    bool loopAP();
     void stopAP();
 
-    void startSTA();
+    void startSTA(bool initMqtt);
+    void loopRestSTA();
 
-    bool loopAP();
-    void loopSTA();
+    // ------------------------------------------------------------------------
+
+    void loopMqttSTA();
 
 private:
+    std::string parseDataToJson(const std::string& data);
+    void sendPostRequest(const std::string& body);
+    
     WebServer _server;
 
-    WiFiClient _wifiClient;
-    PubSubClient _mqttClient;
-
-    std::string parseDataToJson(const std::string& data);
-
-    void connectToMqtt();
-    void sendPostRequest(const std::string& body);
-    void sendMqttMessage(const std::string& body);
-
     std::string _url_rest = "http://10.216.158.124:3000/api/v1/iot/data";
-    std::string _mqtt_broker = "10.216.158.124";
-    std::string _mqtt_topic = "iot/measurements";
-    int _mqtt_port = 1883; 
 
     std::string _device = "d_123";
     std::string _sensor = "random";
@@ -48,7 +42,21 @@ private:
     std::string _sta_password = "";
 
     unsigned long _delay_ms = 5000;
-    unsigned long _last_publish_time = 0;
 
     std::function<std::string()> _data_provider;
+
+    // ------------------------------------------------------------------------
+
+    void connectToMqtt();
+    void sendMqttMessage(const std::string& body);
+
+    WiFiClient _client_wifi;
+    PubSubClient _client_mqtt;
+
+    std::string _mqtt_broker = "10.216.158.124";
+    std::string _mqtt_topic = "iot/data";
+    int _mqtt_port = 1883; 
+
+    unsigned long _current_time = 0;
+    unsigned long _last_publish_time = 0;
 };

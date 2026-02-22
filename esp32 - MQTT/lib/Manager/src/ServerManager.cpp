@@ -3,7 +3,7 @@
 #include <HTTPClient.h>
 #include <WiFi.h>
 
-ServerManager::ServerManager() : _server(80), _mqttClient(_wifiClient) {}               // Modified
+ServerManager::ServerManager() : _server(80), _client_mqtt(_client_wifi) {}
 
 // ------------------------------------------------------------------------
 
@@ -16,12 +16,6 @@ std::string ServerManager::parseDataToJson(const std::string& payload) {
 }
 
 void ServerManager::sendPostRequest(const std::string& body) {
-
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("Error: WiFi Disconnected.");
-        return;
-    }
-
     HTTPClient http;
 
     http.begin(_url_rest.c_str());
@@ -32,21 +26,11 @@ void ServerManager::sendPostRequest(const std::string& body) {
     if (httpResponseCode > 0) {
         std::string response = http.getString().c_str();
         Serial.printf("HTTP Response code: %d\n", httpResponseCode);
-        Serial.println(response.c_str());
     } else {
         Serial.printf("Error code: %d\n", httpResponseCode);
     }
  
     http.end();
-}
-
-void ServerManager::sendMqttMessage(const std::string& body) {                          // Added
-
-    if (_mqttClient.publish(_mqtt_topic.c_str(), body.c_str())) {
-        Serial.println("MQTT message published.");
-    } else {
-        Serial.println("MQTT message error.");
-    }
 }
 
 // ------------------------------------------------------------------------
@@ -89,7 +73,7 @@ void ServerManager::stopAP() {
 
 // ------------------------------------------------------------------------
 
-void ServerManager::startSTA() {                                                        // Modified
+void ServerManager::startSTA(bool initMqtt) {
     WiFi.mode(WIFI_STA); 
 
     delay(100);
@@ -116,23 +100,8 @@ void ServerManager::startSTA() {                                                
         ESP.restart();
     }
 
-    _mqttClient.setServer(_mqtt_broker.c_str(), _mqtt_port);                           
-}
-
-void ServerManager::connectToMqtt() {                                                   // Added
-
-    while (!_mqttClient.connected()) {
-        Serial.println("Connecting to MQTT.");
-
-        if (_mqttClient.connect(_device.c_str())) {
-            Serial.println("Connection established (MQTT).");
-        } else {
-            Serial.print("Connection failed (MQTT). State: ");
-            Serial.print(_mqttClient.state());
-            Serial.print("\n");
-            
-            delay(5000); 
-        }
+    if (initMqtt) {
+        _client_mqtt.setServer(_mqtt_broker.c_str(), _mqtt_port);                           
     }
 }
 
@@ -144,22 +113,60 @@ bool ServerManager::loopAP() {
     return _sta_ssid.empty() || _sta_password.empty();
 }
 
-void ServerManager::loopSTA() {                                                         // Modified
+void ServerManager::loopRestSTA() {
+    delay(_delay_ms);
 
-    if (!_mqttClient.connected()) {
+    if (_data_provider) {
+        std::string jsonBody = parseDataToJson(_data_provider());
+        sendPostRequest(jsonBody);
+    } else {
+        Serial.println("Warning: No Data Provider set!");
+    }
+}
+
+// ------------------------------------------------------------------------
+
+void ServerManager::connectToMqtt() {
+
+    while (!_client_mqtt.connected()) {
+        Serial.println("Connecting to MQTT.");
+
+        if (_client_mqtt.connect(_device.c_str())) {
+            Serial.println("Connection established (MQTT).");
+        } else {
+            Serial.print("Connection failed (MQTT). State: ");
+            Serial.print(_client_mqtt.state());
+            Serial.print("\n");
+            
+            delay(5000); 
+        }
+    }
+}
+
+void ServerManager::sendMqttMessage(const std::string& body) {
+
+    if (_client_mqtt.publish(_mqtt_topic.c_str(), body.c_str())) {
+        Serial.println("MQTT message published.");
+    } else {
+        Serial.println("MQTT message error.");
+    }
+}
+
+void ServerManager::loopMqttSTA() {
+
+    if (!_client_mqtt.connected()) {
         connectToMqtt();
     }
 
-    _mqttClient.loop();
+    _client_mqtt.loop();
 
-    unsigned long currentMillis = millis();
-    if (currentMillis - _last_publish_time >= _delay_ms) {
-        _last_publish_time = currentMillis;
+    _current_time = millis();
+    if (_current_time - _last_publish_time >= _delay_ms) {
+        _last_publish_time = _current_time;
 
         if (_data_provider) {
             std::string jsonBody = parseDataToJson(_data_provider());
             sendMqttMessage(jsonBody);
-            sendPostRequest(jsonBody);
         } else {
             Serial.println("Warning: No Data Provider set!");
         }

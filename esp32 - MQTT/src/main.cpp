@@ -42,9 +42,9 @@ void loop() {
   Serial.println("Production mode...");
   diode.setGreen();
 
-  server.startSTA();
+  server.startSTA(true);
 
   while (true) {
-    server.loopSTA();
+    server.loopMqttSTA();
   }
 }

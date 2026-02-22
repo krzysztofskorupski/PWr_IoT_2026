@@ -1,4 +1,8 @@
-const _db_mock = [];
+let _db_mock;
+
+export const initialize = async () => {
+  _db_mock = [];
+}
 
 export const getUniqueDeviceData = async () => {
   const dataRaw = await loadDatabase();
